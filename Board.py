@@ -38,6 +38,18 @@ class Board:
         self.update_grid()
         self.init_grid_from_board()
 
+        self.predator_steps_entry = tk.Entry(self.root, width=5)
+        self.predator_steps_entry.pack(side="right")
+        self.predator_steps_label = tk.Label(self.root, text="Predator:")
+        self.predator_steps_label.pack(side="right")
+        self.predator_steps_entry.insert(0, "2")
+
+        self.prey_steps_label = tk.Label(self.root, text="Prey:")
+        self.prey_steps_label.pack(side="left")
+        self.prey_steps_entry = tk.Entry(self.root, width=5)
+        self.prey_steps_entry.pack(side="left")
+        self.prey_steps_entry.insert(0, "1")
+
     def set_goal(self):
         self.selected_state = "goal"
 
@@ -175,11 +187,16 @@ class Board:
             self.update_grid()
 
     def run_star(self):
+        predator_steps = int(self.predator_steps_entry.get()) + 1
+        prey_steps = int(self.prey_steps_entry.get()) + 1
+
         self.clear_grid_except_start_goal()
         self.update_grid()
 
         def a_star_thread():
-            path_found = self.board.execute_a_star(self.start, self.goal, self)
+            path_found = self.board.execute_a_star(
+                self.start, self.goal, self, predator_steps, prey_steps
+            )
             if path_found:
                 print("Predador encontrou a presa")
             else:
