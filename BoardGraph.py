@@ -6,6 +6,7 @@ from Square import Square
 class BoardGraph:
     def __init__(self):
         self.graph = {}
+        self.reset_requested = False  # Nova variável de controle
         self.create_initial_board(10)
 
     def add_square(self, coordinates):
@@ -48,6 +49,9 @@ class BoardGraph:
 
         return path[::-1]
 
+    def is_reset_requested(self):
+        return self.reset_requested
+
     def execute_a_star(self, start, goal, board_i: Board, predator_steps, prey_steps):
         open_set = set()
         closed_set = set()
@@ -60,9 +64,16 @@ class BoardGraph:
 
         open_set.add(start)
         count = 0
+        current = self.find_lowest_f(open_set)
         while open_set:
             board_i.update_grid()
-            time.sleep(1)
+            time.sleep(0.2)
+            if self.is_reset_requested():
+                self.reset_requested = False
+                break
+
+            if current == goal:
+                return True
 
             if board_i.player == "predator":
                 current = self.find_lowest_f(open_set)
@@ -76,9 +87,6 @@ class BoardGraph:
                 count += 1
                 if count == prey_steps:
                     break
-
-            if current == goal:
-                return True
 
             open_set.remove(current)
             closed_set.add(current)
@@ -157,6 +165,7 @@ class BoardGraph:
         return largest_f_square
 
     def reset_to_initial_state(self):
+        self.reset_requested = True
         for square in self.graph.values():
             square.f = 0
             square.g = 0
