@@ -6,6 +6,7 @@ from Square import Square
 class BoardGraph:
     def __init__(self):
         self.graph = {}
+        self.reset_requested = False  # Nova variável de controle
         self.create_initial_board(10)
 
     def add_square(self, coordinates):
@@ -22,7 +23,6 @@ class BoardGraph:
     def add_neighbors(self, x, y):
         if (x, y) in self.graph:
             square = self.graph[(x, y)]
-            # 8 direções
             for dx in [-1, 0, 1]:
                 for dy in [-1, 0, 1]:
                     if dx == 0 and dy == 0:
@@ -49,7 +49,10 @@ class BoardGraph:
 
         return path[::-1]
 
-    def execute_a_star(self, start, goal, board_i: Board):
+    def is_reset_requested(self):
+        return self.reset_requested
+
+    def execute_a_star(self, start, goal, board_i: Board, predator_steps, prey_steps):
         open_set = set()
         closed_set = set()
         start_square = self.graph[start]
@@ -61,18 +64,29 @@ class BoardGraph:
 
         open_set.add(start)
         count = 0
+        current = self.find_lowest_f(open_set)
         while open_set:
             board_i.update_grid()
-            time.sleep(1)
+            time.sleep(0.2)
+            if self.is_reset_requested():
+                self.reset_requested = False
+                break
+
+            if current == goal:
+                return True
 
             if board_i.player == "predator":
                 current = self.find_lowest_f(open_set)
                 board_i.start = (current.x, current.y)
+                count += 1
+                if count == predator_steps:
+                    break
             else:
                 current = self.find_largest_f(open_set)
                 board_i.goal = (current.x, current.y)
-            if current == goal:
-                return True
+                count += 1
+                if count == prey_steps:
+                    break
 
             open_set.remove(current)
             closed_set.add(current)
@@ -98,20 +112,19 @@ class BoardGraph:
                     neighbor.g = tentative_g
                     neighbor.f = neighbor.g + neighbor.h
 
-            count = count + 1
-            if board_i.player == "predator" and count == 3:
-                break
-            if board_i.player == "prey" and count == 2:
-                break
         board_i.player = "prey" if board_i.player == "predator" else "predator"
         for square in self.graph.values():
             square.f = 0
             square.g = 0
             square.h = 0
         if board_i.player == "predator":
-            return self.execute_a_star(board_i.start, board_i.goal, board_i)
+            return self.execute_a_star(
+                board_i.start, board_i.goal, board_i, predator_steps, prey_steps
+            )
         else:
-            return self.execute_a_star(board_i.goal, board_i.start, board_i)
+            return self.execute_a_star(
+                board_i.goal, board_i.start, board_i, predator_steps, prey_steps
+            )
 
     def calculate_g(self, current, neighbor, diagonal_cost=14, orthogonal_cost=10):
         dx = abs(current.x - neighbor.x)
@@ -152,6 +165,7 @@ class BoardGraph:
         return largest_f_square
 
     def reset_to_initial_state(self):
+        self.reset_requested = True
         for square in self.graph.values():
             square.f = 0
             square.g = 0
